@@ -12,11 +12,18 @@ import kotlin.math.sqrt
 class TradeEvaluation{
 
     fun isTradeValid(trade:Trade, offerer:CivilizationInfo, tradePartner: CivilizationInfo): Boolean {
-        for(offer in trade.ourOffers)
-            if(!isOfferValid(offer,offerer))
+
+        // Edge case time! Guess what happens if you offer a peace agreement to the AI for all their cities except for the capital,
+        //  and then capture their capital THAT SAME TURN? It can agree, leading to the civilization getting instantly destroyed!
+        if (trade.ourOffers.count { it.type == TradeType.City } == offerer.cities.size
+                || trade.theirOffers.count { it.type == TradeType.City } == tradePartner.cities.size)
+            return false
+
+        for (offer in trade.ourOffers)
+            if (!isOfferValid(offer, offerer))
                 return false
-        for(offer in trade.theirOffers)
-            if(!isOfferValid(offer,tradePartner))
+        for (offer in trade.theirOffers)
+            if (!isOfferValid(offer, tradePartner))
                 return false
         return true
     }
@@ -44,18 +51,18 @@ class TradeEvaluation{
 
     fun isTradeAcceptable(trade: Trade, evaluator: CivilizationInfo, tradePartner: CivilizationInfo): Boolean {
         var sumOfTheirOffers = trade.theirOffers.asSequence()
-                .filter { it.type!= TradeType.Treaty } // since treaties should only be evaluated once for 2 sides
-                .map { evaluateBuyCost(it,evaluator,tradePartner) }.sum()
+                .filter { it.type != TradeType.Treaty } // since treaties should only be evaluated once for 2 sides
+                .map { evaluateBuyCost(it, evaluator, tradePartner) }.sum()
 
         // If we're making a peace treaty, don't try to up the bargain for people you don't like.
         // Leads to spartan behaviour where you demand more, the more you hate the enemy...unhelpful
-        if(trade.ourOffers.none { it.name==Constants.peaceTreaty || it.name==Constants.researchAgreement }) {
+        if (trade.ourOffers.none { it.name == Constants.peaceTreaty || it.name == Constants.researchAgreement }) {
             val relationshipLevel = evaluator.getDiplomacyManager(tradePartner).relationshipLevel()
             if (relationshipLevel == RelationshipLevel.Enemy) sumOfTheirOffers = (sumOfTheirOffers * 1.5).toInt()
             else if (relationshipLevel == RelationshipLevel.Unforgivable) sumOfTheirOffers *= 2
         }
 
-        val sumOfOurOffers = trade.ourOffers.map { evaluateSellCost(it, evaluator, tradePartner)}.sum()
+        val sumOfOurOffers = trade.ourOffers.map { evaluateSellCost(it, evaluator, tradePartner) }.sum()
         return sumOfOurOffers <= sumOfTheirOffers
     }
 

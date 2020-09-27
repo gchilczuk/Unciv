@@ -5,6 +5,8 @@ import com.badlogic.gdx.graphics.Color
 import com.unciv.Constants
 import com.unciv.logic.map.MapSize
 import com.unciv.logic.map.RoadStatus
+import com.unciv.models.ruleset.Unique
+import com.unciv.models.ruleset.UniqueTriggerActivation
 import com.unciv.models.ruleset.tech.Technology
 import com.unciv.ui.utils.withItem
 import java.util.*
@@ -223,8 +225,10 @@ class TechManager {
         if (!newTech.isContinuallyResearchable())
             techsToResearch.remove(techName)
         researchedTechnologies = researchedTechnologies.withItem(newTech)
-        for (unique in newTech.uniques)
+        for (unique in newTech.uniques) {
             researchedTechUniques = researchedTechUniques.withItem(unique)
+            UniqueTriggerActivation.triggerCivwideUnique(Unique(unique), civInfo)
+        }
         updateTransientBooleans()
 
         civInfo.addNotification("Research of [$techName] has completed!", Color.BLUE, TechAction(techName))
@@ -286,29 +290,6 @@ class TechManager {
     }
 
     fun setTransients() {
-        // As of 2.10.16, removed mass media, since our tech tree is like G&K
-        techsResearched.remove("Mass Media")
-        techsToResearch.remove("Mass Media")
-        techsInProgress.remove("Mass Media")
-
-        // As of 2.13.15, "Replacable parts" is renamed to "Replaceable Parts"
-        val badTechName = "Replacable Parts"
-        val goodTechName = "Replaceable Parts"
-        if (techsResearched.contains(badTechName)) {
-            techsResearched.remove(badTechName)
-            techsResearched.add(goodTechName)
-        }
-        if (techsInProgress.containsKey(badTechName)) {
-            techsInProgress[goodTechName] = techsInProgress[badTechName]!!
-            techsInProgress.remove(badTechName)
-        }
-        if (techsToResearch.contains(badTechName)) {
-            val newTechToReseach = ArrayList<String>()
-            for (tech in techsToResearch)
-                newTechToReseach.add(if (tech != badTechName) tech else goodTechName)
-            techsToResearch = newTechToReseach
-        }
-
         researchedTechnologies.addAll(techsResearched.map { getRuleset().technologies[it]!! })
         researchedTechUniques.addAll(researchedTechnologies.flatMap { it.uniques })
         updateTransientBooleans()

@@ -39,7 +39,6 @@ class BaseUnit : INamed, IConstruction {
     var uniqueTo:String?=null
     var attackSound:String?=null
 
-
     fun getShortDescription(): String {
         val infoList = mutableListOf<String>()
         if (strength != 0) infoList += "$strength${Fonts.strength}"
@@ -135,9 +134,13 @@ class BaseUnit : INamed, IConstruction {
         if (uniqueTo!=null && uniqueTo!=civInfo.civName) return "Unique to $uniqueTo"
         if (civInfo.gameInfo.ruleSet.units.values.any { it.uniqueTo==civInfo.civName && it.replaces==name }) return "Our unique unit replaces this"
         if (!civInfo.gameInfo.gameParameters.nuclearWeaponsEnabled
-                && uniques.contains("Requires Manhattan Project")) return "Disabled by setting"
-        if (uniques.contains("Requires Manhattan Project") && !civInfo.hasUnique("Enables nuclear weapon"))
-            return "Requires Manhattan Project"
+                && uniques.contains("Nuclear weapon")) return "Disabled by setting"
+        for (unique in uniqueObjects.filter { it.placeholderText == "Requires []" }) {
+            val filter = unique.params[0]
+            if (filter in civInfo.gameInfo.ruleSet.buildings) {
+                if (civInfo.cities.none { it.cityConstructions.containsBuildingOrEquivalent(filter) }) return unique.text // Wonder is not built
+            } else if (!civInfo.policies.adoptedPolicies.contains(filter)) return "Policy is not adopted"
+        }
         if (requiredResource!=null && !civInfo.hasResource(requiredResource!!) && !civInfo.gameInfo.gameParameters.godMode) return "Consumes 1 [$requiredResource]"
         if (uniques.contains(Constants.settlerUnique) && civInfo.isCityState()) return "No settler for city-states"
         if (uniques.contains(Constants.settlerUnique) && civInfo.isOneCityChallenger()) return "No settler for players in One City Challenge"
@@ -172,6 +175,7 @@ class BaseUnit : INamed, IConstruction {
             if (unit.name == filter
                     || (filter == "relevant" && civInfo.gameInfo.ruleSet.unitPromotions.values.any { unit.type.toString() in it.unitTypes && it.name == promotion })
                     || unit.type.name == filter
+                    || (filter == "non-air" && !unit.type.isAirUnit())
                     || uniques.contains(filter))
                 unit.promotions.addPromotion(promotion, isFree = true)
         }

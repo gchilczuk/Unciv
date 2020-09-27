@@ -13,7 +13,10 @@ import com.unciv.models.metadata.GameSettings
 import com.unciv.models.ruleset.RulesetCache
 import com.unciv.models.translations.Translations
 import com.unciv.ui.LanguagePickerScreen
-import com.unciv.ui.utils.*
+import com.unciv.ui.utils.CameraStageBaseScreen
+import com.unciv.ui.utils.CrashController
+import com.unciv.ui.utils.ImageGetter
+import com.unciv.ui.utils.center
 import com.unciv.ui.worldscreen.WorldScreen
 import java.util.*
 import kotlin.concurrent.thread
@@ -28,6 +31,7 @@ class UncivGame(parameters: UncivGameParameters) : Game() {
     val cancelDiscordEvent = parameters.cancelDiscordEvent
     val fontImplementation = parameters.fontImplementation
     val consoleMode = parameters.consoleMode
+    val customSaveLocationHelper = parameters.customSaveLocationHelper
 
     lateinit var gameInfo: GameInfo
     fun isGameInfoInitialized() = this::gameInfo.isInitialized
@@ -69,6 +73,7 @@ class UncivGame(parameters: UncivGameParameters) : Game() {
         Current = this
 
 
+        GameSaver.customSaveLocationHelper = customSaveLocationHelper
         // If this takes too long players, especially with older phones, get ANR problems.
         // Whatever needs graphics needs to be done on the main thread,
         // So it's basically a long set of deferred actions.
@@ -113,9 +118,9 @@ class UncivGame(parameters: UncivGameParameters) : Game() {
     fun loadGame(gameInfo: GameInfo) {
         this.gameInfo = gameInfo
         ImageGetter.ruleset = gameInfo.ruleSet
+        ImageGetter.reload()
         Gdx.input.inputProcessor = null // Since we will set the world screen when we're ready,
                                         // This is to avoid ANRs when loading.
-        //ImageGetter.refreshAtlas()
         worldScreen = WorldScreen(gameInfo.getPlayerToViewAs())
         setWorldScreen()
     }

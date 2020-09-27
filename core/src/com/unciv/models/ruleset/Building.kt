@@ -46,7 +46,6 @@ class Building : NamedStats(), IConstruction {
      */
     var resourceBonusStats: Stats? = null
 
-
     fun getShortDescription(ruleset: Ruleset): String { // should fit in one line
         val infoList= mutableListOf<String>()
         val str = getStats(null).toString()
@@ -184,6 +183,8 @@ class Building : NamedStats(), IConstruction {
     override fun getProductionCost(civInfo: CivilizationInfo): Int {
         var productionCost = cost.toFloat()
 
+        for (unique in uniqueObjects.filter { it.placeholderText == "Cost increases by [] per owned city" })
+            productionCost += civInfo.cities.count() * unique.params[0].toInt()
 
         if (civInfo.isPlayerCivilization()) {
             if (!isWonder)
@@ -231,6 +232,7 @@ class Building : NamedStats(), IConstruction {
         if (uniques.contains("Unbuildable")) return "Unbuildable"
 
         val cityCenter = construction.cityInfo.getCenterTile()
+        val civInfo = construction.cityInfo.civInfo
 
         for(unique in uniqueObjects) when (unique.placeholderText) {
             "Must be on []" -> if (!cityCenter.fitsUniqueFilter(unique.params[0])) return unique.text
@@ -242,6 +244,11 @@ class Building : NamedStats(), IConstruction {
                         it.fitsUniqueFilter(unique.params[0]) && it.getOwner() == construction.cityInfo.civInfo }) return unique.text
             "Can only be built in annexed cities" -> if (construction.cityInfo.isPuppet || construction.cityInfo.foundingCiv == ""
                     || construction.cityInfo.civInfo.civName == construction.cityInfo.foundingCiv) return unique.text
+            "Requires []" -> { val filter = unique.params[0]
+                if (filter in civInfo.gameInfo.ruleSet.buildings) {
+                    if (civInfo.cities.none { it.cityConstructions.containsBuildingOrEquivalent(filter) }) return unique.text // Wonder is not built
+                } else if (!civInfo.policies.adoptedPolicies.contains(filter)) return "Policy is not adopted" // this reason should not be displayed
+            }
 
             "Must have an owned mountain within 2 tiles" ->  // Deprecated as of 3.10.8 . Use "Must have an owned [Mountain] within [2] tiles" instead
                 if (cityCenter.getTilesInDistance(2)
@@ -259,7 +266,6 @@ class Building : NamedStats(), IConstruction {
                 if (!cityCenter.isAdjacentToFreshwater) return  unique.text
         }
 
-        val civInfo = construction.cityInfo.civInfo
         if (uniqueTo != null && uniqueTo != civInfo.civName) return "Unique to $uniqueTo"
         if (civInfo.gameInfo.ruleSet.buildings.values.any { it.uniqueTo == civInfo.civName && it.replaces == name })
             return "Our unique building replaces this"

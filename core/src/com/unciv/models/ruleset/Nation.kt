@@ -39,6 +39,7 @@ class Nation : INamed {
     var uniqueName = ""
     var uniques = HashSet<String>()
     val uniqueObjects: List<Unique> by lazy { uniques.map { Unique(it) } }
+    var uniqueText = ""
     var innerColor: List<Int>? = null
     var startBias = ArrayList<String>()
 
@@ -92,8 +93,13 @@ class Nation : INamed {
         }
 
         if (uniqueName != "") textList += uniqueName.tr() + ":"
-        textList += "  " + uniques.joinToString(", ") { it.tr() }
-        textList += ""
+        if (uniqueText != "") {
+            textList += " " + uniqueText.tr()
+        }
+        else {
+            textList += "  " + uniques.joinToString(", ") { it.tr() }
+            textList += ""
+        }
 
         if (startBias.isNotEmpty()) {
             textList += "Start bias:".tr() + startBias.joinToString(", ", " ") { it.tr() }
@@ -108,7 +114,7 @@ class Nation : INamed {
 
     private fun addUniqueBuildingsText(textList: ArrayList<String>, ruleset: Ruleset) {
         for (building in ruleset.buildings.values
-                .filter { it.uniqueTo == name }) {
+                .filter { it.uniqueTo == name && "Will not be displayed in Civilopedia" !in it.uniques}) {
             if (building.replaces == null) textList += building.getShortDescription(ruleset)
             else {
                 val originalBuilding = ruleset.buildings[building.replaces!!]!!
@@ -136,7 +142,7 @@ class Nation : INamed {
 
     private fun addUniqueUnitsText(textList: ArrayList<String>, ruleset: Ruleset) {
         for (unit in ruleset.units.values
-                .filter { it.uniqueTo == name }) {
+                .filter { it.uniqueTo == name && "Will not be displayed in Civilopedia" !in it.uniques}) {
             if (unit.replaces != null) {
                 val originalUnit = ruleset.units[unit.replaces!!]!!
                 textList += unit.name.tr() + " - " + "Replaces [${originalUnit.name}]".tr()

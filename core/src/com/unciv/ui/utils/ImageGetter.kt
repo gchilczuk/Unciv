@@ -36,21 +36,21 @@ object ImageGetter {
     val textureRegionDrawables = HashMap<String,TextureRegionDrawable>()
 
     init{
-        setTextureRegionDrawables()
+        reload()
     }
 
     fun setNewRuleset(ruleset: Ruleset) {
         if (this.ruleset == ruleset) return
         this.ruleset = ruleset
-        setTextureRegionDrawables()
+        reload()
     }
 
-
-    fun setTextureRegionDrawables(){
+    /** Required every time the ruleset changes, in order to load mod-specific images */
+    fun reload(){
         textureRegionDrawables.clear()
         // These are the drawables from the base game
-        for(region in atlas.regions){
-            val drawable =TextureRegionDrawable(region)
+        for(region in atlas.regions) {
+            val drawable = TextureRegionDrawable(region)
             textureRegionDrawables[region.name] = drawable
         }
 
